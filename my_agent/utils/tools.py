@@ -36,11 +36,10 @@ class GoogleSearchTool(BaseTool):
         )
 
         # Initialize the LLM with Google search capability
-        import os
         llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             temperature=0.0,
-            google_api_key=os.getenv("GOOGLE_API_KEY")
+            google_api_key="AIzaSyAB0GcW2FFoCKiD0z4Mmk6P-fm0lrNfiRI"
         )
 
         # Combine system prompt with user query

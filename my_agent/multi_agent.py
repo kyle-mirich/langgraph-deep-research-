@@ -8,8 +8,9 @@ from my_agent.utils.tools import search_tools, math_tools, tools
 
 
 def supervisor_node(state: AgentState):
-    """Supervisor node that analyzes the request and passes it along unchanged."""
-    # Just pass the state through - the routing happens in conditional edges
+    """Supervisor node that routes to the appropriate agent without doing work itself."""
+    # The supervisor just passes the state through
+    # The actual routing happens in the conditional edges
     return state
 
 
@@ -19,30 +20,65 @@ def route_to_agent(state: AgentState) -> Literal["research_agent", "math_agent",
     if not messages:
         return "end"
     
-    last_message = messages[-1]
+    # Check if we already have an answer from an agent
+    if len(messages) >= 2:
+        last_message = messages[-1]
+        # If the last message is from an AI/assistant without tool calls, we're done
+        if hasattr(last_message, 'type') and last_message.type == 'ai':
+            if not (hasattr(last_message, 'tool_calls') and last_message.tool_calls):
+                return "end"
+        elif isinstance(last_message, dict):
+            if last_message.get('role') == 'assistant' and not last_message.get('tool_calls'):
+                return "end"
+    
+    # Find the original human message to route based on content
+    human_message = None
+    for msg in reversed(messages):
+        if (hasattr(msg, 'type') and msg.type == 'human') or \
+           (isinstance(msg, dict) and msg.get('role') == 'user'):
+            human_message = msg
+            break
+    
+    if not human_message:
+        return "end"
     
     # Handle both message objects and dictionaries
-    if hasattr(last_message, 'content'):
-        content = last_message.content.lower()
-    elif isinstance(last_message, dict) and 'content' in last_message:
-        content = last_message['content'].lower()
+    if hasattr(human_message, 'content'):
+        content = human_message.content.lower()
+    elif isinstance(human_message, dict) and 'content' in human_message:
+        content = human_message['content'].lower()
     else:
         return "research_agent"  # Default fallback
     
-    # Check for math-related keywords
+    # Check for math-related keywords and patterns
     math_keywords = ["calculate", "math", "multiply", "divide", "add", "subtract", 
-                     "plus", "minus", "times", "equation", "solve", "=", "+", "-", "*", "/"]
+                     "plus", "minus", "times", "equation", "solve", "=", "+", "-", "*", "/", "x"]
+    
+    # Check for number patterns that suggest math (like "4x4", "2+2", etc.)
+    import re
+    math_patterns = [
+        r'\d+\s*[x*+\-/]\s*\d+',  # patterns like "4x4", "2+2", "10-5"
+        r'\d+\s*[\^]\s*\d+',       # patterns like "2^3"
+        r'\(\s*\d+.*\d+\s*\)',     # patterns with parentheses
+    ]
     
     # Check for research-related keywords  
     research_keywords = ["search", "find", "look up", "research", "who is", "what is", 
-                        "when did", "where is", "how many", "current", "latest"]
+                        "when did", "where is", "how many", "current", "latest", "mayor", "president"]
     
-    has_math = any(keyword in content for keyword in math_keywords)
+    has_math = any(keyword in content for keyword in math_keywords) or \
+               any(re.search(pattern, content) for pattern in math_patterns)
     has_research = any(keyword in content for keyword in research_keywords)
     
-    # If both or neither, default to research for now
+    # Prioritize math if it's detected, otherwise default to research
     if has_math and not has_research:
         return "math_agent"
+    elif has_math and has_research:
+        # If both are detected, check which is more prominent
+        if any(re.search(pattern, content) for pattern in math_patterns):
+            return "math_agent"
+        else:
+            return "research_agent"
     else:
         return "research_agent"
 
@@ -143,13 +179,13 @@ def create_multi_agent_graph():
         },
     )
     
-    # Add conditional edges from agents to tools or end
+    # Add conditional edges from agents to tools or back to supervisor
     workflow.add_conditional_edges(
         "research_agent",
         should_continue_agent,
         {
             "tools": "research_tools",
-            "end": END,
+            "end": "supervisor",  # Return to supervisor when done
         },
     )
     
@@ -158,7 +194,7 @@ def create_multi_agent_graph():
         should_continue_agent,
         {
             "tools": "math_tools",
-            "end": END,
+            "end": "supervisor",  # Return to supervisor when done
         },
     )
     
