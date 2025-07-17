@@ -1,5 +1,5 @@
 from google.ai.generativelanguage_v1beta.types import Tool as GenAITool
-from langchain_core.tools import BaseTool
+from langchain_core.tools import BaseTool, tool
 from typing import Type
 from pydantic import BaseModel, Field
 
@@ -36,10 +36,11 @@ class GoogleSearchTool(BaseTool):
         )
 
         # Initialize the LLM with Google search capability
+        import os
         llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             temperature=0.0,
-            google_api_key="AIzaSyAB0GcW2FFoCKiD0z4Mmk6P-fm0lrNfiRI"
+            google_api_key=os.getenv("GOOGLE_API_KEY")
         )
 
         # Combine system prompt with user query
@@ -54,4 +55,37 @@ class GoogleSearchTool(BaseTool):
         return resp.content
 
 
-tools = [GoogleSearchTool()]
+@tool
+def add(a: float, b: float) -> float:
+    """Add two numbers together."""
+    return a + b
+
+
+@tool
+def multiply(a: float, b: float) -> float:
+    """Multiply two numbers together."""
+    return a * b
+
+
+@tool
+def divide(a: float, b: float) -> float:
+    """Divide the first number by the second number."""
+    if b == 0:
+        return "Error: Cannot divide by zero"
+    return a / b
+
+
+@tool
+def subtract(a: float, b: float) -> float:
+    """Subtract the second number from the first number."""
+    return a - b
+
+
+# Web search tools
+search_tools = [GoogleSearchTool()]
+
+# Math tools
+math_tools = [add, multiply, divide, subtract]
+
+# All tools
+tools = search_tools + math_tools

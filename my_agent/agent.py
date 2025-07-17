@@ -3,6 +3,7 @@ from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
 from my_agent.utils.nodes import call_model, should_continue, tool_node
 from my_agent.utils.state import AgentState
+from my_agent.multi_agent import multi_agent_graph
 
 
 # Define the config
@@ -10,7 +11,7 @@ class GraphConfig(TypedDict):
     model_name: Literal["anthropic", "openai","google"]
 
 
-# Define a new graph
+# Define a new graph (single agent - kept for backward compatibility)
 workflow = StateGraph(AgentState, config_schema=GraphConfig)
 
 # Define the two nodes we will cycle between
@@ -46,7 +47,8 @@ workflow.add_conditional_edges(
 # This means that after `tools` is called, `agent` node is called next.
 workflow.add_edge("action", "agent")
 
-# Finally, we compile it!
-# This compiles it into a LangChain Runnable,
-# meaning you can use it as you would any other runnable
-graph = workflow.compile()
+# Compile the single agent graph (for backward compatibility)
+single_agent_graph = workflow.compile()
+
+# Use the multi-agent system as the main graph
+graph = multi_agent_graph
