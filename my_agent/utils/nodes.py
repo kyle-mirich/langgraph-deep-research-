@@ -8,7 +8,15 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 @lru_cache(maxsize=4)
 def _get_model(model_name):
-    model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0, max_output_tokens=None,timeout=None,max_retries=3,google_api_key="AIzaSyAB0GcW2FFoCKiD0z4Mmk6P-fm0lrNfiRI")
+    import os
+    from dotenv import load_dotenv
+    
+    # Load .env from multiple possible locations
+    load_dotenv()
+    load_dotenv(dotenv_path='my_agent/.env')
+    load_dotenv(dotenv_path='my_agent/.env.local')
+    
+    model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0, max_output_tokens=None,timeout=None,max_retries=3,google_api_key=os.getenv("GOOGLE_API_KEY"))
 
     model = model.bind_tools(tools)
     return model

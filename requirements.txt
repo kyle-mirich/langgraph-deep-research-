@@ -1,0 +1,10 @@
+langgraph
+langgraph-cli
+langchain-core
+langchain-anthropic
+langchain-openai
+langchain-google-genai
+langchain-community
+tavily-python
+pydantic
+python-dotenv

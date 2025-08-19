@@ -44,9 +44,15 @@ def route_to_agent(state: AgentState) -> Literal["research_agent", "math_agent",
     
     # Handle both message objects and dictionaries
     if hasattr(human_message, 'content'):
-        content = human_message.content.lower()
+        content = human_message.content
+        if isinstance(content, list):
+            content = ' '.join(str(item) for item in content)
+        content = content.lower()
     elif isinstance(human_message, dict) and 'content' in human_message:
-        content = human_message['content'].lower()
+        content = human_message['content']
+        if isinstance(content, list):
+            content = ' '.join(str(item) for item in content)
+        content = content.lower()
     else:
         return "research_agent"  # Default fallback
     

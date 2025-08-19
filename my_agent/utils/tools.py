@@ -1,7 +1,11 @@
+import os
+from dotenv import load_dotenv
 from google.ai.generativelanguage_v1beta.types import Tool as GenAITool
 from langchain_core.tools import BaseTool, tool
 from typing import Type
 from pydantic import BaseModel, Field
+
+load_dotenv()
 
 
 class GoogleSearchInput(BaseModel):
@@ -21,7 +25,14 @@ class GoogleSearchTool(BaseTool):
 
     def _run(self, query: str) -> str:
         """Execute the Google search using GenAITool"""
+        import os
+        from dotenv import load_dotenv
         from langchain_google_genai import ChatGoogleGenerativeAI
+        
+        # Load .env from multiple possible locations
+        load_dotenv()
+        load_dotenv(dotenv_path='my_agent/.env')
+        load_dotenv(dotenv_path='my_agent/.env.local')
 
         # Embedded system prompt
         prompt = (
@@ -37,9 +48,9 @@ class GoogleSearchTool(BaseTool):
 
         # Initialize the LLM with Google search capability
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             temperature=0.0,
-            google_api_key="AIzaSyAB0GcW2FFoCKiD0z4Mmk6P-fm0lrNfiRI"
+            google_api_key=os.getenv("GOOGLE_API_KEY")
         )
 
         # Combine system prompt with user query
